@@ -1,14 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
-const LecturePlayer = ({ userId, videoId, videoSrc }) => {
+const LecturePlayer = ({ videoId, videoSrc }) => {
   const videoRef = useRef(null);
+  const [userId, setUserId] = useState(null);
   const [currentStart, setCurrentStart] = useState(null);
   const [intervals, setIntervals] = useState([]);
   const [progress, setProgress] = useState(0);
 
+  // Get IP address as userId
+  useEffect(() => {
+    const fetchIp = async () => {
+      try {
+        const res = await axios.get("https://api.ipify.org?format=json");
+        setUserId(res.data.ip);
+        console.log("Current IP as userId:", res.data.ip);
+      } catch (err) {
+        console.error("Failed to fetch IP", err);
+      }
+    };
+
+    fetchIp();
+  }, []);
+
   // Fetch existing progress
   useEffect(() => {
+    if (!userId) return;
+
     const fetchProgress = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/progress/${userId}/${videoId}`);
@@ -28,13 +46,12 @@ const LecturePlayer = ({ userId, videoId, videoSrc }) => {
     fetchProgress();
   }, [userId, videoId]);
 
-  // Interval tracker every 1s
+  // Track progress every second
   useEffect(() => {
     const intervalId = setInterval(() => {
       const video = videoRef.current;
-      if (video && !video.paused && !video.ended) {
+      if (video && !video.paused && !video.ended && userId) {
         const now = Math.floor(video.currentTime);
-        const duration = Math.floor(video.duration || 1);
         if (currentStart === null) {
           setCurrentStart(now);
         }
@@ -48,10 +65,12 @@ const LecturePlayer = ({ userId, videoId, videoSrc }) => {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [currentStart]);
+  }, [currentStart, userId]);
 
-  // Save interval to backend
+  // Save watched interval
   const saveIntervalToBackend = async (newInterval, lastPosition) => {
+    if (!userId) return;
+
     try {
       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/progress/save`, {
         userId,
@@ -88,7 +107,7 @@ const LecturePlayer = ({ userId, videoId, videoSrc }) => {
     return merged;
   };
 
-  // Total watched time
+  // Calculate total watched time
   const calculateUniqueTime = (intervals) => {
     const merged = mergeIntervals(intervals);
     return merged.reduce((sum, i) => sum + (i.end - i.start), 0);
