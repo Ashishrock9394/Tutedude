@@ -6,7 +6,7 @@ A full-stack web application that **tracks how much of a lecture video a user ha
 
 📸 Screenshots
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+![App Screenshot](https://github.com/Ashishrock9394/Tutedude/blob/main/client/public/Screenshot.png)
 
 
 
